@@ -1,0 +1,139 @@
+---
+title: "CH 11: Assumptions - Part I"
+output: pdf_document
+---
+
+\renewcommand{\vec}[1]{\mathbf{#1}}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5, fig.align = 'center')
+library(tidyverse) 
+library(rstanarm)
+library(arm)
+library(gridExtra)
+set.seed(10212020)
+```
+
+### Assumptions for Regression Models
+
+The assumptions described in _Regression and Other Stories,_ are more broad than many textbooks. In order of importance,
+
+\vfill
+
+1. __Validity:__ 
+
+\vfill
+
+2. __Representativeness:__ 
+
+\vfill
+
+3. __Additivity and linearity:__ 
+
+\vfill
+
+4. __Independence of Errors:__ 
+
+\vfill
+
+5. __Equal Variance of Errors:__ 
+
+\vfill
+
+6. __Normality of Errors:__ 
+
+\vfill
+\newpage
+
+What if the assumptions are violated??
+
+\vfill
+
+
+\vfill
+
+
+
+\vfill
+
+
+
+\vfill
+
+### Plots of fitted model
+
+For simple models with one continuous predictor and/or one categorical predictor, we have see how to fit the model with `geom_smooth`.
+
+\vfill
+
+With additional covariates in the model this becomes more challenging. Consider the candy dataset and a model
+
+```{r}
+candy <- read_csv("https://math.montana.edu/ahoegh/teaching/stat446/candy-data.csv") %>% 
+  mutate(pricepercent = pricepercent - mean(pricepercent),
+         sugarpercent = sugarpercent - mean(sugarpercent))
+candy_model <- stan_glm(winpercent ~ pricepercent + sugarpercent, data = candy, refresh = 0)
+print(candy_model)
+plot(candy_model)
+```
+
+\vfill
+
+- One option is to plot the response against each predictor holding the other continuous predictors constant and setting levels of categorical predictors. 
+
+\vfill
+
+```{r}
+candy %>% 
+  ggplot(aes(y = winpercent, x = pricepercent)) + 
+  geom_point() + 
+  geom_abline(intercept = candy_model$coefficients['(Intercept)'],
+              slope = candy_model$coefficients['pricepercent'], 
+              color = 'red') +
+  labs(title = 'Model fit for winpercent vs. pricepercent \n for average sugarpercent') +
+  theme_bw()
+```
+
+\newpage
+
+### Residual Plots
+
+Model fit can also be evaluated looking at residuals plots. 
+
+\vfill
+
+These plots should result in absence of patterns.
+
+\vfill
+
+#### Residual Plots from Fake Data
+
+It is not always obvious (at least initially) what residual plots should look like and what variations could be expected when the model is indeed true.
+
+\vfill
+
+```{r, echo = F, fig.align = 'center', fig.height = 6, fig.width = 6}
+n <- 80
+x <- runif(n, -1, 1)
+y <- rnorm(n, mean = x)
+comb <- tibble(y = y, x = x)
+model_fit <- comb %>% stan_glm(y~x, data = ., refresh = 0)
+fig1 <- comb %>% ggplot(aes(y=y,x=x))+
+  geom_smooth(formula = 'y~x', method = 'lm') + geom_point() + theme_bw() + labs(title = 'Y vs. X, simulated data')
+
+fig2 <- tibble(resids = model_fit$residuals, fits = model_fit$fitted.values) %>% 
+  ggplot(aes(y = resids, x = fits)) +
+  geom_point() + theme_bw() +
+  geom_smooth(formula = 'y~x', method = 'loess') + 
+  labs(title = 'Residuals vs. fitted values')
+
+grid.arrange(fig1, fig2)
+```
+
+\vfill
+
+It can also be useful to create a panel of figures to explore residuals vs. each covariate.
+\vfill
+
+\newpage
+
